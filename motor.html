@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DedSec // CTOS Bypass Hub v5.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', Courier, monospace; }
+        body { background-color: #0d0d0d; color: #00ff66; padding: 20px; overflow-x: hidden; }
+        
+        body::before {
+            content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 99999; opacity: 0.8; pointer-events: none; background-size: 100% 3px, 3px 100%;
+        }
+
+        .top-bar { max-width: 1200px; margin: 0 auto 20px auto; display: flex; justify-content: space-between; background-color: #121212; border: 1px solid #ff0055; padding: 15px; box-shadow: 0 0 10px rgba(255, 0, 85, 0.2); }
+        .rep-counter { font-size: 1.2rem; font-weight: bold; color: #00ffff; text-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
+        .rep-value { color: #ffff00; }
+
+        .header-search { max-width: 1200px; margin: 0 auto 20px auto; display: flex; gap: 10px; }
+        .search-input { flex: 1; background-color: #000; border: 1px solid #00ff66; color: #00ff66; padding: 15px; font-size: 1.2rem; outline: none; text-transform: uppercase; }
+        .search-input:focus { border-color: #ff0055; }
+        .search-label { background-color: #00ff66; color: #000; padding: 15px; font-weight: bold; font-size: 1.2rem; text-transform: uppercase; }
+
+        .layout { display: flex; max-width: 1200px; margin: 0 auto; gap: 20px; }
+        
+        .sidebar { flex: 1; border: 2px solid #ff0055; background-color: #121212; padding: 20px; height: fit-content; }
+        .sidebar-title { color: #ff0055; font-size: 1.2rem; margin-bottom: 20px; border-bottom: 1px dashed #ff0055; padding-bottom: 10px; text-transform: uppercase; }
+        
+        .exploit-link { 
+            display: block; color: #00ff66; text-decoration: none; padding: 10px; 
+            border: 1px solid transparent; margin-bottom: 10px; cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .exploit-link:hover, .exploit-link.active { border: 1px solid #00ff66; background-color: rgba(0, 255, 102, 0.1); }
+        .exploit-link::before { content: "[?] "; color: #ff0055; }
+        
+        .exploit-link.hacked { color: #555; text-decoration: line-through; border-color: #333; }
+        .exploit-link.hacked::before { content: "[HACKED] "; color: #00ff66; text-decoration: none; display: inline-block; }
+        .exploit-link.hacked:hover { border-color: #00ff66; color: #00ff66; text-decoration: none; }
+
+        .hidden { display: none !important; }
+
+        .main-content { flex: 3; border: 2px solid #00ff66; background-color: #121212; padding: 30px; min-height: 500px; }
+        
+        .glitch-wrapper { text-align: center; margin-bottom: 30px; border-bottom: 2px dashed #00ff66; padding-bottom: 20px; }
+        .glitch { font-size: 2.5rem; font-weight: bold; text-transform: uppercase; text-shadow: 0.05em 0 0 #ff0055, -0.025em -0.05em 0 #00ffff; animation: glitch 1.5s infinite; }
+        
+        @keyframes glitch {
+            0% { text-shadow: 0.05em 0 0 #ff0055, -0.025em -0.05em 0 #00ffff; }
+            20% { text-shadow: -0.05em -0.025em 0 #ff0055, 0.025em 0.025em 0 #00ffff; }
+            40% { text-shadow: 0.025em 0.05em 0 #ff0055, 0.05em 0 0 #00ffff; }
+            100% { text-shadow: -0.025em 0 0 #ff0055, -0.025em -0.025em 0 #00ffff; }
+        }
+
+        .blueprint-container { display: none; text-align: center; margin-bottom: 30px; color: #00ffff; font-size: 14px; line-height: 1.2; white-space: pre; border: 1px dashed #00ffff; padding: 15px; background: rgba(0, 255, 255, 0.05); }
+
+        #loader { display: none; text-align: center; color: #ff0055; margin-top: 100px; font-size: 1.5rem; }
+        .progress-bar { width: 100%; height: 20px; border: 1px solid #ff0055; margin-top: 20px; position: relative; }
+        .progress-fill { height: 100%; background-color: #ff0055; width: 0%; transition: width 0.1s; }
+
+        .complete-btn { 
+            display: block; width: 100%; background: #000; color: #00ff66; border: 2px solid #00ff66; 
+            padding: 15px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; 
+            cursor: pointer; margin-top: 40px; transition: 0.3s; 
+        }
+        .complete-btn:hover { background: #00ff66; color: #000; box-shadow: 0 0 20px rgba(0, 255, 102, 0.5); }
+        .complete-btn.done { background: #121212; color: #555; border-color: #333; pointer-events: none; }
+
+        #guide-container { display: block; }
+        
+        /* Tyhle styly chrání načtené HTML z data.js */
+        .phase { margin-bottom: 30px; border-left: 3px solid #00ff66; padding-left: 20px; }
+        .phase-title { color: #ffff00; font-size: 1.3rem; text-transform: uppercase; margin-bottom: 5px; }
+        .phase-meta { color: #ff0055; font-size: 0.8rem; margin-bottom: 15px; font-weight: bold; }
+        .phase p { color: #cccccc; margin-bottom: 10px; }
+
+        @media (max-width: 768px) { .layout { flex-direction: column; } .header-search { flex-direction: column; } }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div>UZEL: PRAHA // STATUS: <span style="color: #00ff66;">ONLINE</span></div>
+    <div class="rep-counter">DEDSEC FOLLOWERS: <span class="rep-value" id="rep-display">0</span></div>
+</div>
+
+<div class="header-search">
+    <div class="search-label">CTOS // Najít cíl</div>
+    <input type="text" class="search-input" id="search-box" placeholder="Zadej zařízení nebo chybu (např. iphone, drift)...">
+</div>
+
+<div class="layout">
+    <div class="sidebar">
+        <div class="sidebar-title">Datový uzel // Exploity</div>
+        <div id="sidebar-links"></div>
+    </div>
+
+    <div class="main-content">
+        <div class="glitch-wrapper">
+            <div class="glitch" id="main-title">DEDSEC // ROOT_ACCESS</div>
+            <div style="color: #ff0055; margin-top: 10px; letter-spacing: 2px;" id="sub-title">ČEKÁM NA VÝBĚR CÍLE...</div>
+        </div>
+
+        <div id="loader">
+            <p>> PROLAMUJI FIREWALL BLUME CORP...</p>
+            <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        </div>
+
+        <div id="blueprint" class="blueprint-container"></div>
+
+        <div id="guide-container">
+            <div style="text-align: center; color: #555; margin-top: 50px;">[ PRÁZDNÝ TERMINÁL ]</div>
+        </div>
+    </div>
+</div>
+
+<!-- TADY PŘIPOJUJEME DATABÁZI -->
+<script src="data.js"></script>
+
+<!-- TADY ZŮSTALA JEN LOGIKA WEBU -->
+<script>
+    let userProgress = JSON.parse(localStorage.getItem('dedsec_progress')) || { completed: [], followers: 0 };
+    let currentOperationId = null;
+
+    const sidebarContainer = document.getElementById('sidebar-links');
+    const searchBox = document.getElementById('search-box');
+    const repDisplay = document.getElementById('rep-display');
+
+    function updateRepDisplay() {
+        repDisplay.innerText = userProgress.followers.toLocaleString();
+    }
+
+    function renderSidebar() {
+        sidebarContainer.innerHTML = '';
+        // 'database' bereme z data.js
+        for (const [key, data] of Object.entries(database)) {
+            const link = document.createElement('div');
+            link.className = 'exploit-link';
+            link.innerText = data.menuLabel;
+            link.setAttribute('data-key', key);
+            link.setAttribute('data-tags', data.searchTags);
+            
+            if (userProgress.completed.includes(key)) {
+                link.classList.add('hacked');
+            }
+            
+            link.onclick = function() { loadGuide(key, this); };
+            sidebarContainer.appendChild(link);
+        }
+        updateRepDisplay();
+    }
+    
+    // Spustí se hned po načtení
+    renderSidebar();
+
+    searchBox.addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        const links = document.querySelectorAll('.exploit-link');
+        links.forEach(link => {
+            const tags = link.getAttribute('data-tags');
+            const label = link.innerText.toLowerCase();
+            if (tags.includes(query) || label.includes(query)) {
+                link.classList.remove('hidden');
+            } else {
+                link.classList.add('hidden');
+            }
+        });
+    });
+
+    function loadGuide(id, clickedElement) {
+        document.querySelectorAll('.exploit-link').forEach(link => link.classList.remove('active'));
+        if(clickedElement) clickedElement.classList.add('active');
+        
+        currentOperationId = id; 
+
+        const container = document.getElementById('guide-container');
+        const loader = document.getElementById('loader');
+        const progress = document.getElementById('progress');
+        const mainTitle = document.getElementById('main-title');
+        const subTitle = document.getElementById('sub-title');
+        const blueprint = document.getElementById('blueprint');
+
+        container.style.display = 'none';
+        blueprint.style.display = 'none';
+        loader.style.display = 'block';
+        mainTitle.innerText = "DEDSEC // DECRYPTING";
+        subTitle.innerText = "[ BYPASSING SECURITY ]";
+        
+        let width = 0;
+        const interval = setInterval(() => {
+            width += Math.floor(Math.random() * 20) + 10;
+            if (width >= 100) width = 100;
+            progress.style.width = width + '%';
+
+            if (width === 100) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    progress.style.width = '0%';
+                    
+                    mainTitle.innerText = database[id].title;
+                    subTitle.innerText = database[id].sub;
+                    blueprint.innerText = database[id].ascii;
+                    
+                    const isCompleted = userProgress.completed.includes(id);
+                    const btnClass = isCompleted ? "complete-btn done" : "complete-btn";
+                    const btnText = isCompleted ? "[ OPERACE JIŽ BYLA DOKONČENA ]" : `[ SPUSŤ SCRIPT: OPRAVA DOKONČENA ] // ODMĚNA: +${database[id].reward} FOLLOWERS`;
+
+                    container.innerHTML = database[id].html + `<button class="${btnClass}" onclick="completeOperation()">${btnText}</button>`;
+                    
+                    blueprint.style.display = 'block';
+                    container.style.display = 'block';
+                }, 300);
+            }
+        }, 80); 
+    }
+
+    function completeOperation() {
+        if (!currentOperationId || userProgress.completed.includes(currentOperationId)) return;
+
+        userProgress.completed.push(currentOperationId);
+        userProgress.followers += database[currentOperationId].reward;
+        localStorage.setItem('dedsec_progress', JSON.stringify(userProgress));
+
+        updateRepDisplay();
+        renderSidebar(); 
+        
+        const btn = document.querySelector('.complete-btn');
+        if(btn) {
+            btn.classList.add('done');
+            btn.innerText = "[ OPERACE DOKONČENA // DATA ODESLÁNA DO SÍTĚ ]";
+        }
+    }
+</script>
+
+</body>
+</html>
